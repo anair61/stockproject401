@@ -300,6 +300,7 @@ def logout():
 
 # Home
 # Home
+# Home
 @app.route("/")
 @login_required
 def home():
@@ -413,7 +414,10 @@ def home():
             }
         )
 
-    open_orders_count = Order.query.filter_by(user_id=current_user.id, status="pending").count()
+    open_orders_count = Order.query.filter_by(
+        user_id=current_user.id,
+        status="pending"
+    ).count()
 
     stocks = Stock.query.order_by(Stock.ticker.asc()).limit(8).all()
     stocks_rows = []

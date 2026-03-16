@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Home</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    :root{
+      --brand-primary:#2563EB;
+      --brand-success:#16A34A;
+      --brand-danger:#DC2626;
+      --brand-warning:#F59E0B;
+    }
+
+    .app-brand{ letter-spacing:.2px; }
+
+    .hero{
+      border-radius:18px;
+      background: linear-gradient(135deg, rgba(37,99,235,.12), rgba(22,163,74,.10));
+      border: 1px solid rgba(148,163,184,.35);
+    }
+
+    [data-bs-theme="dark"] .hero{
+      background: linear-gradient(135deg, rgba(37,99,235,.18), rgba(22,163,74,.12));
+      border: 1px solid rgba(148,163,184,.18);
+    }
+
+    .card-soft{
+      border: 1px solid rgba(148,163,184,.25);
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(2,6,23,.06);
+    }
+
+    [data-bs-theme="dark"] .card-soft{
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+
+    .pill{
+      border-radius: 999px;
+      font-weight: 600;
+      letter-spacing: .2px;
+    }
+
+    .btn-brand{
+      background: var(--brand-primary);
+      border-color: var(--brand-primary);
+    }
+
+    .btn-brand:hover{ filter: brightness(.95); }
+
+    .badge-open{
+      background: rgba(22,163,74,.12);
+      color: var(--brand-success);
+      border: 1px solid rgba(22,163,74,.25);
+    }
+
+    .badge-closed{
+      background: rgba(220,38,38,.12);
+      color: var(--brand-danger);
+      border: 1px solid rgba(220,38,38,.25);
+    }
+
+    .muted{ color: var(--bs-secondary-color); }
+
+    .table thead th{
+      font-size: .85rem;
+      color: var(--bs-secondary-color);
+    }
+  </style>
+</head>
+
+<body class="bg-body">
+  <nav class="navbar navbar-expand-lg bg-body border-bottom sticky-top">
+    <div class="container">
+      <span class="navbar-brand fw-semibold app-brand">Stock Trading System</span>
+
+      <div class="ms-auto d-flex gap-2 align-items-center">
+        <button id="themeToggle" class="btn btn-outline-secondary btn-sm pill" type="button" title="Toggle theme">Theme</button>
+
+        {% if current_user.role == 'admin' %}
+          <a class="btn btn-outline-primary btn-sm pill" href="{{ url_for('create_stock') }}">Create stock</a>
+          <a class="btn btn-outline-secondary btn-sm pill" href="{{ url_for('market_hours') }}">Market hours</a>
+          <a class="btn btn-outline-secondary btn-sm pill" href="{{ url_for('market_schedule') }}">Market schedule</a>
+        {% else %}
+          <a class="btn btn-outline-primary btn-sm pill" href="{{ url_for('stocks') }}">Stocks</a>
+          <a class="btn btn-outline-secondary btn-sm pill" href="{{ url_for('portfolio') }}">Portfolio</a>
+          <a class="btn btn-outline-secondary btn-sm pill" href="{{ url_for('orders') }}">Orders</a>
+        {% endif %}
+
+        <a class="btn btn-outline-danger btn-sm pill" href="{{ url_for('logout') }}">Logout</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container py-4">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="mb-3">
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }} mb-2">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="hero p-4 p-md-5 mb-4">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div>
+          <h1 class="h3 mb-1">Welcome, {{ current_user.username }}!</h1>
+          <div class="muted">Role: <span class="fw-semibold">{{ current_user.role }}</span></div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+          {% if market_open %}
+            <span class="px-3 py-2 badge-open pill">Market OPEN</span>
+          {% else %}
+            <span class="px-3 py-2 badge-closed pill">Market CLOSED</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3">
+
+      <div class="col-12 col-lg-8">
+        <div class="card card-soft">
+          <div class="card-body p-4">
+
+            {% if current_user.role == 'admin' %}
+              <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <div>
+                  <h2 class="h5 mb-1">Administrator Home</h2>
+                  <div class="muted small">Create stocks, manage market settings, and execute pending orders.</div>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2">
+                  <form method="post" action="{{ url_for('execute_orders_admin') }}">
+                    <button class="btn btn-brand btn-sm pill text-white" type="submit">Execute pending orders</button>
+                  </form>
+                </div>
+              </div>
+
+              <hr class="my-4">
+
+              <h3 class="h6 mb-2">Users</h3>
+              <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Full name</th>
+                      <th>Username</th>
+                      <th>Email</th>
+                      <th>Role</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for u in users %}
+                      <tr>
+                        <td>{{ u.id }}</td>
+                        <td>{{ u.full_name }}</td>
+                        <td class="fw-semibold">{{ u.username }}</td>
+                        <td>{{ u.email }}</td>
+                        <td><span class="badge text-bg-secondary">{{ u.role }}</span></td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+
+            {% else %}
+              <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <div>
+                  <h2 class="h5 mb-1">Customer Home</h2>
+                  <div class="muted small">Trading, portfolio, cash account, and orders.</div>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2">
+                  <a class="btn btn-brand btn-sm pill text-white" href="{{ url_for('stocks') }}">Buy stocks</a>
+                  <a class="btn btn-outline-danger btn-sm pill" href="{{ url_for('stocks') }}">Sell stocks</a>
+                </div>
+              </div>
+
+              <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                  <div class="card card-soft">
+                    <div class="card-body">
+                      <div class="muted small">Cash Balance</div>
+                      <div class="fs-4 fw-semibold">${{ cash_balance }}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-md-4">
+                  <div class="card card-soft">
+                    <div class="card-body">
+                      <div class="muted small">Portfolio Value</div>
+                      <div class="fs-4 fw-semibold">${{ portfolio_value }}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-md-4">
+                  <div class="card card-soft">
+                    <div class="card-body">
+                      <div class="muted small">Pending Orders</div>
+                      <div class="fs-4 fw-semibold">{{ open_orders_count }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="d-flex flex-wrap gap-2 mb-4">
+                <a class="btn btn-outline-success btn-sm pill" href="{{ url_for('deposit') }}">Deposit cash</a>
+                <a class="btn btn-outline-warning btn-sm pill" href="{{ url_for('withdraw') }}">Withdraw cash</a>
+                <a class="btn btn-outline-secondary btn-sm pill" href="{{ url_for('portfolio') }}">View portfolio</a>
+                <a class="btn btn-outline-secondary btn-sm pill" href="{{ url_for('transactions') }}">Transaction history</a>
+                <a class="btn btn-outline-dark btn-sm pill" href="{{ url_for('orders') }}">Orders</a>
+              </div>
+
+              <h3 class="h6 mb-2">Portfolio snapshot</h3>
+              <div class="table-responsive mb-4">
+                <table class="table table-sm align-middle">
+                  <thead>
+                    <tr>
+                      <th>Ticker</th>
+                      <th class="text-end">Shares</th>
+                      <th class="text-end">Current</th>
+                      <th class="text-end">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% if holdings and holdings|length > 0 %}
+                      {% for h in holdings %}
+                        <tr>
+                          <td class="fw-semibold">{{ h.ticker }}</td>
+                          <td class="text-end">{{ h.shares }}</td>
+                          <td class="text-end">${{ h.price }}</td>
+                          <td class="text-end">${{ h.value }}</td>
+                        </tr>
+                      {% endfor %}
+                    {% else %}
+                      <tr>
+                        <td colspan="4" class="text-center muted py-3">No holdings yet.</td>
+                      </tr>
+                    {% endif %}
+                  </tbody>
+                </table>
+              </div>
+
+              <h3 class="h6 mb-2">Stocks preview</h3>
+              <div class="muted small mb-3">Ticker, price, volume, market cap, open, high, low.</div>
+
+              <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                  <thead>
+                    <tr>
+                      <th>Company</th>
+                      <th>Ticker</th>
+                      <th class="text-end">Price</th>
+                      <th class="text-end">Volume</th>
+                      <th class="text-end">Market cap</th>
+                      <th class="text-end">Open</th>
+                      <th class="text-end">High</th>
+                      <th class="text-end">Low</th>
+                      <th class="text-end">Trade</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% if stocks and stocks|length > 0 %}
+                      {% for s in stocks %}
+                        <tr>
+                          <td>{{ s.company_name }}</td>
+                          <td class="fw-semibold">{{ s.ticker }}</td>
+                          <td class="text-end">${{ s.price }}</td>
+                          <td class="text-end">{{ s.volume }}</td>
+                          <td class="text-end">${{ s.market_cap }}</td>
+                          <td class="text-end">${{ s.open_price }}</td>
+                          <td class="text-end">${{ s.high_price }}</td>
+                          <td class="text-end">${{ s.low_price }}</td>
+                          <td class="text-end">
+                            <a class="btn btn-sm btn-success pill" href="{{ url_for('buy', ticker=s.ticker) }}">Buy</a>
+                            <a class="btn btn-sm btn-outline-danger pill" href="{{ url_for('sell', ticker=s.ticker) }}">Sell</a>
+                          </td>
+                        </tr>
+                      {% endfor %}
+                    {% else %}
+                      <tr>
+                        <td colspan="9" class="text-center muted py-3">No stocks available yet. Ask admin to create one.</td>
+                      </tr>
+                    {% endif %}
+                  </tbody>
+                </table>
+              </div>
+
+              <hr class="my-4">
+
+              <h3 class="h6 mb-2">Recent transactions</h3>
+              <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                  <thead>
+                    <tr>
+                      <th>Type</th>
+                      <th class="text-end">Amount</th>
+                      <th class="text-end">Time</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% if recent_transactions and recent_transactions|length > 0 %}
+                      {% for t in recent_transactions %}
+                        <tr>
+                          <td class="fw-semibold">{{ t.type }}</td>
+                          <td class="text-end">${{ t.amount }}</td>
+                          <td class="text-end">{{ t.timestamp }}</td>
+                        </tr>
+                      {% endfor %}
+                    {% else %}
+                      <tr>
+                        <td colspan="3" class="text-center muted py-3">No transactions yet.</td>
+                      </tr>
+                    {% endif %}
+                  </tbody>
+                </table>
+              </div>
+            {% endif %}
+
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-lg-4">
+        <div class="card card-soft">
+          <div class="card-body p-4">
+            <h3 class="h6 mb-2">Quick info</h3>
+            <ul class="mb-0 small muted">
+              <li>Orders can be canceled before execution</li>
+              <li>Trades are placed only during market hours</li>
+              <li>Sold stock funds go to the cash account</li>
+              <li>Withdrawals are only from the cash account</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card card-soft mt-3">
+          <div class="card-body p-4">
+            <h3 class="h6 mb-2">Navigation</h3>
+            <div class="d-grid gap-2">
+              {% if current_user.role == 'admin' %}
+                <a class="btn btn-outline-primary btn-sm pill" href="{{ url_for('create_stock') }}">Create stock</a>
+                <a class="btn btn-outline-secondary btn-sm pill" href="{{ url_for('market_hours') }}">Market hours</a>
+                <a class="btn btn-outline-secondary btn-sm pill" href="{{ url_for('market_schedule') }}">Market schedule</a>
+              {% else %}
+                <a class="btn btn-outline-primary btn-sm pill" href="{{ url_for('stocks') }}">Stocks</a>
+                <a class="btn btn-outline-secondary btn-sm pill" href="{{ url_for('portfolio') }}">Portfolio</a>
+                <a class="btn btn-outline-secondary btn-sm pill" href="{{ url_for('orders') }}">Orders</a>
+                <a class="btn btn-outline-secondary btn-sm pill" href="{{ url_for('transactions') }}">Transactions</a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const root = document.documentElement;
+      const btn = document.getElementById("themeToggle");
+
+      function setTheme(theme) {
+        root.setAttribute("data-bs-theme", theme);
+        localStorage.setItem("theme", theme);
+        btn.textContent = theme === "dark" ? "Dark" : "Light";
+      }
+
+      const saved = localStorage.getItem("theme");
+      if (saved === "dark" || saved === "light") setTheme(saved);
+      else setTheme("light");
+
+      btn.addEventListener("click", function () {
+        const current = root.getAttribute("data-bs-theme");
+        setTheme(current === "dark" ? "light" : "dark");
+      });
+    })();
+  </script>
+</body>
+</html>

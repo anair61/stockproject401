@@ -299,6 +299,7 @@ def logout():
 
 
 # Home
+# Home
 @app.route("/")
 @login_required
 def home():
@@ -310,12 +311,83 @@ def home():
         users = Users.query.order_by(Users.id.asc()).all()
         settings = get_market_settings()
         holidays = MarketHoliday.query.order_by(MarketHoliday.day.asc()).all()
+
+        today_holiday = MarketHoliday.query.filter_by(day=date.today()).first()
+        next_holiday = (
+            MarketHoliday.query
+            .filter(MarketHoliday.day >= date.today())
+            .order_by(MarketHoliday.day.asc())
+            .first()
+        )
+
+        stock_count = Stock.query.count()
+        pending_orders_count = Order.query.filter_by(status="pending").count()
+        total_transactions = Transaction.query.count()
+
+        stocks_preview = []
+        stocks = Stock.query.order_by(Stock.ticker.asc()).limit(5).all()
+        for s in stocks:
+            stocks_preview.append(
+                {
+                    "company_name": s.company_name,
+                    "ticker": s.ticker,
+                    "price": f"{float(s.price):.2f}",
+                    "volume": int(s.volume),
+                    "market_cap": f"{float(s.price) * int(s.volume):.2f}",
+                    "high_low": f"{float(s.high_price):.2f} / {float(s.low_price):.2f}",
+                }
+            )
+
+        recent_activity = (
+            db.session.query(Transaction, Users, Stock)
+            .join(Users, Transaction.user_id == Users.id)
+            .outerjoin(Stock, Transaction.stock_id == Stock.id)
+            .order_by(Transaction.created_at.desc())
+            .limit(5)
+            .all()
+        )
+
+        recent_rows = []
+        for txn, user, stock in recent_activity:
+            action_label = txn.txn_type.title()
+
+            if stock is not None and txn.shares:
+                action_label = f"{action_label} {int(txn.shares)} {stock.ticker}"
+
+            recent_rows.append(
+                {
+                    "user": user.username,
+                    "type": action_label,
+                    "amount": f"{float(txn.amount):.2f}",
+                    "timestamp": txn.created_at.strftime("%m/%d/%Y %I:%M %p"),
+                }
+            )
+
+        open_days = [
+            ("Mon", settings.mon),
+            ("Tue", settings.tue),
+            ("Wed", settings.wed),
+            ("Thu", settings.thu),
+            ("Fri", settings.fri),
+            ("Sat", settings.sat),
+            ("Sun", settings.sun),
+        ]
+
         return render_template(
             "home.html",
             market_open=market_open,
             users=users,
             settings=settings,
             holidays=holidays,
+            total_users=len(users),
+            stock_count=stock_count,
+            pending_orders_count=pending_orders_count,
+            total_transactions=total_transactions,
+            stocks_preview=stocks_preview,
+            recent_activity=recent_rows,
+            open_days=open_days,
+            today_holiday=today_holiday,
+            next_holiday=next_holiday,
         )
 
     acct = ensure_cash_account(current_user.id)
